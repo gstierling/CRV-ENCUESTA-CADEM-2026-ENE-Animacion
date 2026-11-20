@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Presencia de marcas en las CicloRecreoVías</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#0a2342;--blue:#2f8cff;--blue2:#1b6fe0;--pink:#ff6fb5;--yellow:#ffd23f;--white:#ffffff;--soft:#b9cbe6;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;background:#061629;overflow:hidden;font-family:Poppins,system-ui,sans-serif}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  #stage{position:relative;width:1080px;height:1920px;overflow:hidden;
+    background:radial-gradient(120% 80% at 50% 0%,#12407a 0%,#0a2342 55%,#071a33 100%);transform-origin:center center;flex:none}
+  .abs{position:absolute}
+  .scene{position:absolute;inset:0;display:none}
+  .bokeh{position:absolute;border-radius:50%;filter:blur(2px)}
+  .pill{position:absolute;left:50%;transform:translateX(-50%);padding:14px 34px;border-radius:999px;
+    font-weight:700;font-size:30px;letter-spacing:3px;white-space:nowrap}
+  .phrase{position:absolute;left:80px;right:80px;top:250px;text-align:center;color:#fff;font-weight:600;font-size:60px;line-height:1.3}
+  .phrase .w{display:inline-block;margin:0 .13em}
+  .kw{position:relative;display:inline-block;font-weight:900;color:var(--navy);padding:0 .18em;margin:0 .1em}
+  .kw::before{content:"";position:absolute;left:0;right:0;top:8%;bottom:4%;background:var(--yellow);border-radius:14px;
+    transform-origin:left center;transform:scaleX(var(--hl,0)) skewX(-6deg);z-index:-1}
+  .kw span{position:relative}
+  .bar{position:absolute;border-radius:22px 22px 6px 6px}
+  .num{position:absolute;text-align:center;font-weight:900;color:#fff}
+  .lab{position:absolute;text-align:center;font-weight:700;font-size:34px}
+  .big{position:absolute;left:40px;right:40px;text-align:center;color:#fff;font-weight:800}
+  .small{position:absolute;left:60px;right:60px;text-align:center;color:var(--soft);font-weight:600}
+  .src{position:absolute;left:0;right:0;bottom:56px;text-align:center;color:#8fa6c8;font-size:26px;font-weight:600}
+  .conf{position:absolute;width:18px;height:28px;border-radius:4px}
+  #play{position:fixed;right:16px;bottom:16px;background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:999px;
+    padding:12px 20px;font:600 16px Poppins,sans-serif;display:none}
+</style>
+</head>
+<body>
+<div id="wrap"><div id="stage"></div></div>
+<button id="play">↻ Repetir</button>
+<script>
+const S = document.getElementById('stage');
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const prog=(t,a,b)=>clamp((t-a)/(b-a));
+const eOut=x=>1-Math.pow(1-x,3);
+const eInOut=x=>x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;
+const eBack=x=>{const c1=1.7,c3=c1+1;return 1+c3*Math.pow(x-1,3)+c1*Math.pow(x-1,2)};
+function el(tag,cls,parent,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;(parent||S).appendChild(e);return e}
+function css(e,o){for(const k in o)e.style[k]=o[k]}
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+
+/* ---------- background bokeh ---------- */
+const bok=[];
+for(let i=0;i<14;i++){
+  const b=el('div','bokeh');const r=60+rnd()*180;
+  const col=[ 'rgba(47,140,255,.13)','rgba(255,111,181,.10)','rgba(255,210,63,.08)'][i%3];
+  css(b,{width:r+'px',height:r+'px',background:col});
+  bok.push({b,x:rnd()*1080,y:rnd()*1920,vx:(rnd()-.5)*18,vy:-8-rnd()*20,r});
+}
+function drawBokeh(t){for(const o of bok){let y=((o.y+o.vy*t)%2100+2100)%2100-150;let x=o.x+Math.sin(t*.4+o.r)*30+o.vx*t;x=((x%1250)+1250)%1250-120;
+  o.b.style.transform=`translate(${x}px,${y}px)`;}}
+
+/* ---------- bike svg ---------- */
+function bikeSVG(color){return `<svg width="260" height="160" viewBox="0 0 260 160">
+ <g fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+  <g class="wh1"><circle cx="60" cy="110" r="44"/><line x1="60" y1="66" x2="60" y2="154" stroke-width="4"/><line x1="16" y1="110" x2="104" y2="110" stroke-width="4"/></g>
+  <g class="wh2"><circle cx="200" cy="110" r="44"/><line x1="200" y1="66" x2="200" y2="154" stroke-width="4"/><line x1="156" y1="110" x2="244" y2="110" stroke-width="4"/></g>
+  <path d="M60 110 L105 50 L180 50 L200 110 M105 50 L130 110 L60 110 M130 110 L180 50 M98 34 L122 34 M180 50 L172 28 L194 24"/>
+ </g></svg>`}
+function makeBike(parent,color){const b=el('div','abs',parent,bikeSVG(color));return b}
+function drawBike(b,x,y,t){b.style.transform=`translate(${x}px,${y+Math.sin(t*14)*3}px)`;
+  const a=(t*420)%360;b.querySelector('.wh1').setAttribute('transform',`rotate(${a} 60 110)`);b.querySelector('.wh2').setAttribute('transform',`rotate(${a} 200 110)`)}
+
+/* ---------- confetti ---------- */
+function makeConfetti(parent,n,cols){const arr=[];for(let i=0;i<n;i++){const c=el('div','conf',parent);c.style.background=cols[i%cols.length];
+  arr.push({c,ang:-Math.PI/2+(rnd()-.5)*2.4,sp:700+rnd()*900,rot:rnd()*720-360,dl:rnd()*.15})}return arr}
+function drawConfetti(arr,ox,oy,tt){for(const p of arr){const t=tt-p.dl;if(t<0||t>2.6){p.c.style.opacity=0;continue}
+  const x=ox+Math.cos(p.ang)*p.sp*t, y=oy+Math.sin(p.ang)*p.sp*t+900*t*t;
+  p.c.style.opacity=clamp(1-(t-1.8)/0.8);p.c.style.transform=`translate(${x}px,${y}px) rotate(${p.rot*t}deg)`}}
+
+/* ---------- person icon ---------- */
+function personSVG(id){return `<svg width="76" height="120" viewBox="0 0 76 120">
+ <defs><clipPath id="cp${id}"><rect class="clip" x="0" y="0" width="0" height="120"/></clipPath></defs>
+ <g fill="rgba(255,255,255,.16)"><circle cx="38" cy="22" r="19"/><path d="M8 118 V66 a30 30 0 0 1 60 0 V118 Z"/></g>
+ <g fill="#2f8cff" clip-path="url(#cp${id})"><circle cx="38" cy="22" r="19"/><path d="M8 118 V66 a30 30 0 0 1 60 0 V118 Z"/></g></svg>`}
+
+/* ================= SCENES ================= */
+const scenes=[];
+function scene(dur,build){const root=el('div','scene');const upd=build(root,dur);scenes.push({root,dur,upd});}
+function enterExit(root,t,dur,noExit){const a=eOut(prog(t,0,.6));const b=noExit?0:eInOut(prog(t,dur-.7,dur));
+  root.style.opacity=a*(1-b);root.style.transform=`translateY(${(1-a)*40-b*60}px)`}
+
+/* ---- Intro ---- */
+scene(7,(R,dur)=>{
+  const pill=el('div','pill',R,'ENCUESTA CADEM');css(pill,{top:'250px',background:'rgba(255,255,255,.12)',color:'#fff'});
+  const t1=el('div','big',R,'Presencia de marcas');css(t1,{top:'420px',fontSize:'92px',lineHeight:'1.1'});
+  const t2=el('div','big',R,'en las <span style="color:var(--yellow)">CicloRecreoVías</span>');css(t2,{top:'530px',fontSize:'84px',lineHeight:'1.1'});
+  const q=el('div','small',R,'¿Qué tan de acuerdo están las personas con que haya marcas en los domingos de bici, patines y trote?');
+  css(q,{top:'720px',fontSize:'44px',lineHeight:'1.35',color:'#dbe7f7'});
+  const n=el('div','big',R,'0');css(n,{top:'1010px',fontSize:'230px',color:'var(--yellow)',lineHeight:'1'});
+  const nl=el('div','small',R,'personas encuestadas');css(nl,{top:'1260px',fontSize:'48px',color:'#fff'});
+  const road=el('div','abs',R);css(road,{left:0,right:0,top:'1640px',height:'8px',background:'repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 60px,transparent 60px 110px)'});
+  const bike=makeBike(R,'#ffd23f');
+  return t=>{
+    enterExit(R,t,dur);
+    const p=eBack(prog(t,.2,.9));css(pill,{opacity:prog(t,.2,.6),transform:`translateX(-50%) translateY(${(1-p)*-60}px)`});
+    const a1=eOut(prog(t,.5,1.3)),a2=eOut(prog(t,.8,1.6));
+    css(t1,{opacity:a1,transform:`translateX(${(1-a1)*-200}px)`});css(t2,{opacity:a2,transform:`translateX(${(1-a2)*200}px)`});
+    const aq=eOut(prog(t,1.6,2.4));css(q,{opacity:aq,transform:`translateY(${(1-aq)*30}px)`});
+    const an=prog(t,2.6,4.0);css(n,{opacity:prog(t,2.6,2.9),transform:`scale(${.6+.4*eBack(prog(t,2.6,3.2))})`});
+    n.textContent=Math.round(700*eOut(an));
+    css(nl,{opacity:prog(t,3.6,4.1)});
+    road.style.backgroundPosition=`${-t*300}px 0`;
+    drawBike(bike,-300+prog(t,.4,6.4)*1700,1490,t);
+  }
+});
+
+/* ---- Bar scenes ---- */
+const bars=[
+ {n:1,v:91,d:9,kw:'AUSPICIEN',pre:'Me parece bien que las marcas',post:'actividades gratuitas como la CicloRecreoVía',lead:'Más de 9 de cada 10'},
+ {n:2,v:79,d:21,kw:'EXPERIENCIA',pre:'La presencia de marcas mejora la',post:'(hidratación, música, servicios)',lead:'Casi 8 de cada 10'},
+ {n:3,v:67,d:33,kw:'IMAGEN',pre:'La presencia de las marcas en este tipo de actividades mejora mi',post:'de la marca que auspicia',lead:'2 de cada 3'},
+];
+bars.forEach(cfg=>scene(14,(R,dur)=>{
+  const pill=el('div','pill',R,`${cfg.n} / 3`);css(pill,{top:'120px',background:'var(--yellow)',color:'var(--navy)',fontSize:'34px'});
+  const ph=el('div','phrase',R);
+  const words=[];
+  cfg.pre.split(' ').forEach(w=>words.push(el('span','w',ph,w)));
+  const kw=el('span','kw w',ph,`<span>${cfg.kw}</span>`);words.push(kw);
+  cfg.post.split(' ').forEach(w=>words.push(el('span','w',ph,w)));
+  const base=1330,sc=6.2;
+  const axis=el('div','abs',R);css(axis,{left:'150px',width:'780px',top:base+'px',height:'4px',background:'rgba(255,255,255,.35)'});
+  const bB=el('div','bar',R);css(bB,{left:'230px',width:'330px',background:'linear-gradient(180deg,#5aa6ff,#1b6fe0)',boxShadow:'0 0 60px rgba(47,140,255,.45)'});
+  const bP=el('div','bar',R);css(bP,{left:'640px',width:'210px',background:'linear-gradient(180deg,#ff8cc4,#e0509a)'});
+  const nB=el('div','num',R);css(nB,{left:'200px',width:'390px',fontSize:'120px',lineHeight:'1'});
+  const nP=el('div','num',R);css(nP,{left:'600px',width:'290px',fontSize:'72px',lineHeight:'1',color:'#ffd0e6'});
+  const lB=el('div','lab',R,'De acuerdo');css(lB,{left:'200px',width:'390px',top:(base+18)+'px',color:'#8fc2ff'});
+  const lP=el('div','lab',R,'En desacuerdo');css(lP,{left:'580px',width:'330px',top:(base+18)+'px',color:'#ff9fcd'});
+  const icons=el('div','abs',R);css(icons,{left:'68px',top:'1440px',display:'flex',gap:'18px'});
+  const clips=[];for(let k=0;k<10;k++){const d=el('div','',icons,personSVG(cfg.n*10+k));clips.push({d,c:d.querySelector('.clip')})}
+  const lead=el('div','big',R,cfg.lead);css(lead,{top:'1590px',fontSize:'66px',color:'var(--yellow)'});
+  const sub=el('div','small',R,`≈ ${Math.round(700*cfg.v/100)} de las 700 personas encuestadas`);css(sub,{top:'1685px',fontSize:'38px',color:'#fff'});
+  const src=el('div','src',R,'Fuente: Cadem N° 134 · Noviembre 2026 · 700 casos');
+  const conf=makeConfetti(R,46,['#ffd23f','#2f8cff','#ff6fb5','#ffffff','#7ee0a1']);
+  return t=>{
+    enterExit(R,t,dur);
+    const pp=eBack(prog(t,.1,.7));css(pill,{transform:`translateX(-50%) scale(${pp})`});
+    words.forEach((w,i)=>{const a=eOut(prog(t,.3+i*.06,.75+i*.06));css(w,{opacity:a,transform:`translateY(${(1-a)*30}px)`})});
+    const kStart=.4+words.length*.06+.3;
+    const hl=eOut(prog(t,kStart,kStart+.6));kw.style.setProperty('--hl',hl);
+    const pop=prog(t,kStart+.4,kStart+1.1);const s=1+Math.sin(pop*Math.PI)*.18;
+    kw.style.transform=`scale(${s}) rotate(${Math.sin(pop*Math.PI*2)*-3}deg)`;kw.style.opacity=1;
+    const g0=kStart+1.4, g=eOut(prog(t,g0,g0+2.2));
+    const hB=cfg.v*sc*g,hP=cfg.d*sc*g;
+    css(bB,{top:(base-hB)+'px',height:hB+'px'});css(bP,{top:(base-hP)+'px',height:hP+'px'});
+    nB.textContent=Math.round(cfg.v*g)+'%';css(nB,{top:(base-hB-140)+'px',opacity:prog(t,g0,g0+.3)});
+    nP.textContent=Math.round(cfg.d*g)+'%';css(nP,{top:(base-hP-90)+'px',opacity:prog(t,g0,g0+.3)});
+    const lb=prog(t,g0,g0+.5);lB.style.opacity=lb;lP.style.opacity=lb;
+    const cb=g0+2.2;drawConfetti(conf,380,base-cfg.v*sc,t-cb);
+    const pulse=t>cb?1+Math.sin(prog(t,cb,cb+.5)*Math.PI)*.08:1;nB.style.transform=`scale(${pulse})`;
+    const i0=cb+.5,fill=cfg.v/10*eInOut(prog(t,i0,i0+2.0));
+    icons.style.opacity=prog(t,i0-.3,i0);
+    clips.forEach((o,k)=>{const f=clamp(fill-k);o.c.setAttribute('width',76*f);o.d.style.transform=`translateY(${-Math.sin(clamp(fill-k)*Math.PI)*14}px)`});
+    const l0=i0+1.6,la=eBack(prog(t,l0,l0+.6));css(lead,{opacity:prog(t,l0,l0+.3),transform:`scale(${.7+.3*la})`});
+    css(sub,{opacity:prog(t,l0+.5,l0+1.0)});
+    src.style.opacity=prog(t,1,1.6);
+  }
+}));
+
+/* ---- Summary ---- */
+scene(9,(R,dur)=>{
+  const h=el('div','big',R,'En resumen');css(h,{top:'200px',fontSize:'88px'});
+  const hs=el('div','small',R,'% muy de acuerdo + de acuerdo');css(hs,{top:'320px',fontSize:'38px'});
+  const base=1300,sc=7.2,xs=[120,420,720],cols=[];
+  const axis=el('div','abs',R);css(axis,{left:'90px',width:'900px',top:base+'px',height:'4px',background:'rgba(255,255,255,.35)'});
+  bars.forEach((c,i)=>{
+    const b=el('div','bar',R);css(b,{left:xs[i]+'px',width:'240px',background:'linear-gradient(180deg,#5aa6ff,#1b6fe0)',boxShadow:'0 0 50px rgba(47,140,255,.35)'});
+    const n=el('div','num',R);css(n,{left:(xs[i]-30)+'px',width:'300px',fontSize:'96px',lineHeight:'1'});
+    const k=el('div','abs',R,c.kw);css(k,{left:(xs[i]-40)+'px',width:'320px',top:(base+34)+'px',textAlign:'center',display:'flex',justifyContent:'center'});
+    k.innerHTML=`<span style="background:var(--yellow);color:var(--navy);font-weight:900;font-size:${c.kw.length>9?34:42}px;padding:8px 18px;border-radius:12px">${c.kw}</span>`;
+    cols.push({b,n,k,v:c.v});
+  });
+  const msg=el('div','big',R,'La gran mayoría valora que las marcas acompañen la <span style="color:var(--yellow)">CicloRecreoVía</span>');
+  css(msg,{top:'1520px',fontSize:'56px',lineHeight:'1.3',left:'80px',right:'80px',fontWeight:'700'});
+  const src=el('div','src',R,'Fuente: Cadem N° 134 · Noviembre 2026 · 700 casos');
+  return t=>{
+    enterExit(R,t,dur);
+    const ah=eOut(prog(t,.2,.8));css(h,{opacity:ah,transform:`translateY(${(1-ah)*-40}px)`});hs.style.opacity=prog(t,.6,1.1);
+    cols.forEach((o,i)=>{const g=eOut(prog(t,1+i*.45,2.6+i*.45));const hh=o.v*sc*g;
+      css(o.b,{top:(base-hh)+'px',height:hh+'px'});o.n.textContent=Math.round(o.v*g)+'%';
+      css(o.n,{top:(base-hh-115)+'px',opacity:prog(t,1+i*.45,1.3+i*.45)});
+      const ka=eBack(prog(t,1.4+i*.45,2.0+i*.45));css(o.k,{opacity:prog(t,1.4+i*.45,1.7+i*.45),transform:`scale(${ka})`});});
+    const am=eOut(prog(t,3.6,4.4));css(msg,{opacity:am,transform:`translateY(${(1-am)*30}px)`});
+    src.style.opacity=prog(t,1,1.6);
+  }
+});
+
+/* ---- Outro ---- */
+scene(6,(R,dur)=>{
+  const w=el('div','big',R,'CicloRecreoVía');css(w,{top:'720px',fontSize:'120px',fontWeight:'900',letterSpacing:'-2px'});
+  const u=el('div','abs',R);css(u,{left:'240px',width:'600px',top:'880px',height:'14px',borderRadius:'7px',background:'linear-gradient(90deg,var(--blue),var(--pink),var(--yellow))',transformOrigin:'left'});
+  const s=el('div','small',R,'Marcas que suman a los domingos de todos');css(s,{top:'940px',fontSize:'42px',color:'#fff'});
+  const road=el('div','abs',R);css(road,{left:0,right:0,top:'1460px',height:'8px',background:'repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 60px,transparent 60px 110px)'});
+  const bike=makeBike(R,'#2f8cff');const bike2=makeBike(R,'#ff6fb5');
+  const src=el('div','src',R,'Fuente: Cadem N° 134 · Noviembre 2026 · 700 casos');
+  const fade=el('div','abs',R);css(fade,{inset:0,background:'#061629'});
+  return t=>{
+    enterExit(R,t,dur,true);
+    const a=eBack(prog(t,.3,1.0));css(w,{opacity:prog(t,.3,.6),transform:`scale(${.6+.4*a})`});
+    u.style.transform=`scaleX(${eOut(prog(t,.9,1.6))})`;
+    const as=eOut(prog(t,1.4,2.0));css(s,{opacity:as,transform:`translateY(${(1-as)*24}px)`});
+    road.style.backgroundPosition=`${-t*300}px 0`;
+    drawBike(bike,1150-prog(t,.2,5.6)*1550,1310,t);drawBike(bike2,1450-prog(t,.6,5.8)*1650,1310,t+.3);
+    bike.style.transform+=' scaleX(-1)';bike2.style.transform+=' scaleX(-1)';
+    src.style.opacity=prog(t,1,1.6);
+    fade.style.opacity=prog(t,dur-.6,dur);
+  }
+});
+
+/* ---------- timeline ---------- */
+let acc=0;scenes.forEach(s=>{s.start=acc;acc+=s.dur});
+const TOTAL=acc;
+window.TOTAL=TOTAL;window.SCENES=scenes.map(s=>({start:s.start,dur:s.dur}));
+window.render=function(t){drawBokeh(t);
+  scenes.forEach(s=>{const on=t>=s.start&&t<s.start+s.dur||(s===scenes[scenes.length-1]&&t>=s.start);
+    s.root.style.display=on?'block':'none';if(on)s.upd(Math.min(t-s.start,s.dur))})};
+
+/* ---------- playback ---------- */
+function fit(){const k=Math.min(innerWidth/1080,innerHeight/1920);S.style.transform=`scale(${k})`}
+const capture=location.search.includes('capture');
+if(!capture){
+  fit();addEventListener('resize',fit);
+  const btn=document.getElementById('play');let t0=performance.now();
+  btn.onclick=()=>{t0=performance.now();btn.style.display='none';loop()};
+  function loop(){const t=(performance.now()-t0)/1000;render(Math.min(t,TOTAL));if(t<TOTAL)requestAnimationFrame(loop);else btn.style.display='block'}
+  (document.fonts?document.fonts.ready:Promise.resolve()).then(()=>{t0=performance.now();loop()});
+}else{render(0)}
+</script>
+</body>
+</html>

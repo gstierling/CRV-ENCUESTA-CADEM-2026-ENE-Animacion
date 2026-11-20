@@ -28,6 +28,7 @@
   .num{position:absolute;text-align:center;font-weight:900;color:#fff}
   .lab{position:absolute;text-align:center;font-weight:700;font-size:34px}
   .big{position:absolute;left:40px;right:40px;text-align:center;color:#fff;font-weight:800}
+  .fit{white-space:nowrap}
   .small{position:absolute;left:60px;right:60px;text-align:center;color:var(--soft);font-weight:600}
   .src{position:absolute;left:0;right:0;bottom:56px;text-align:center;color:#8fa6c8;font-size:26px;font-weight:600}
   .conf{position:absolute;width:18px;height:28px;border-radius:4px}
@@ -103,8 +104,8 @@ function enterExit(root,t,dur,noExit){const a=eOut(prog(t,0,.6));const b=noExit?
 /* ---- Intro ---- */
 scene(7,(R,dur)=>{
   const pill=el('div','pill',R,'ENCUESTA CADEM');css(pill,{top:'250px',background:'rgba(255,255,255,.12)',color:'#fff'});
-  const t1=el('div','big',R,'Presencia de marcas');css(t1,{top:'420px',fontSize:'92px',lineHeight:'1.1'});
-  const t2=el('div','big',R,'en las <span style="color:var(--yellow)">CicloRecreoVías</span>');css(t2,{top:'530px',fontSize:'84px',lineHeight:'1.1'});
+  const t1=el('div','big fit',R,'Presencia de marcas');css(t1,{top:'420px',fontSize:'92px',lineHeight:'1.1'});
+  const t2=el('div','big fit',R,'en las <span style="color:var(--yellow)">CicloRecreoVías</span>');css(t2,{top:'530px',fontSize:'84px',lineHeight:'1.1'});
   const q=el('div','small',R,'¿Qué tan de acuerdo están las personas con que haya marcas en los domingos de bici, patines y trote?');
   css(q,{top:'720px',fontSize:'44px',lineHeight:'1.35',color:'#dbe7f7'});
   const n=el('div','big',R,'0');css(n,{top:'1010px',fontSize:'230px',color:'var(--yellow)',lineHeight:'1'});
@@ -148,7 +149,7 @@ bars.forEach(cfg=>scene(14,(R,dur)=>{
   const lP=el('div','lab',R,'En desacuerdo');css(lP,{left:'580px',width:'330px',top:(base+18)+'px',color:'#ff9fcd'});
   const icons=el('div','abs',R);css(icons,{left:'68px',top:'1440px',display:'flex',gap:'18px'});
   const clips=[];for(let k=0;k<10;k++){const d=el('div','',icons,personSVG(cfg.n*10+k));clips.push({d,c:d.querySelector('.clip')})}
-  const lead=el('div','big',R,cfg.lead);css(lead,{top:'1590px',fontSize:'66px',color:'var(--yellow)'});
+  const lead=el('div','big fit',R,cfg.lead);css(lead,{top:'1590px',fontSize:'66px',color:'var(--yellow)'});
   const sub=el('div','small',R,`≈ ${Math.round(700*cfg.v/100)} de las 700 personas encuestadas`);css(sub,{top:'1685px',fontSize:'38px',color:'#fff'});
   const src=el('div','src',R,'Fuente: Cadem N° 134 · Noviembre 2026 · 700 casos');
   const conf=makeConfetti(R,46,['#ffd23f','#2f8cff','#ff6fb5','#ffffff','#7ee0a1']);
@@ -179,7 +180,7 @@ bars.forEach(cfg=>scene(14,(R,dur)=>{
 
 /* ---- Summary ---- */
 scene(9,(R,dur)=>{
-  const h=el('div','big',R,'En resumen');css(h,{top:'200px',fontSize:'88px'});
+  const h=el('div','big fit',R,'En resumen');css(h,{top:'200px',fontSize:'88px'});
   const hs=el('div','small',R,'% muy de acuerdo + de acuerdo');css(hs,{top:'320px',fontSize:'38px'});
   const base=1300,sc=7.2,xs=[120,420,720],cols=[];
   const axis=el('div','abs',R);css(axis,{left:'90px',width:'900px',top:base+'px',height:'4px',background:'rgba(255,255,255,.35)'});
@@ -207,9 +208,9 @@ scene(9,(R,dur)=>{
 
 /* ---- Outro ---- */
 scene(6,(R,dur)=>{
-  const w=el('div','big',R,'CicloRecreoVía');css(w,{top:'720px',fontSize:'120px',fontWeight:'900',letterSpacing:'-2px'});
+  const w=el('div','big fit',R,'CicloRecreoVía');css(w,{top:'720px',fontSize:'120px',fontWeight:'900',letterSpacing:'-2px'});
   const u=el('div','abs',R);css(u,{left:'240px',width:'600px',top:'880px',height:'14px',borderRadius:'7px',background:'linear-gradient(90deg,var(--blue),var(--pink),var(--yellow))',transformOrigin:'left'});
-  const s=el('div','small',R,'Marcas que suman a los domingos de todos');css(s,{top:'940px',fontSize:'42px',color:'#fff'});
+  const s=el('div','small fit',R,'Marcas que suman a los domingos de todos');css(s,{top:'940px',fontSize:'42px',color:'#fff'});
   const road=el('div','abs',R);css(road,{left:0,right:0,top:'1460px',height:'8px',background:'repeating-linear-gradient(90deg,rgba(255,255,255,.35) 0 60px,transparent 60px 110px)'});
   const bike=makeBike(R,'#2f8cff');const bike2=makeBike(R,'#ff6fb5');
   const src=el('div','src',R,'Fuente: Cadem N° 134 · Noviembre 2026 · 700 casos');
@@ -231,6 +232,10 @@ scene(6,(R,dur)=>{
 let acc=0;scenes.forEach(s=>{s.start=acc;acc+=s.dur});
 const TOTAL=acc;
 window.TOTAL=TOTAL;window.SCENES=scenes.map(s=>({start:s.start,dur:s.dur}));
+window.fitAll=function(){scenes.forEach(s=>s.root.style.display='block');
+  document.querySelectorAll('.fit').forEach(e=>{if(!e.dataset.fs)e.dataset.fs=parseFloat(e.style.fontSize);
+    let fs=+e.dataset.fs;e.style.fontSize=fs+'px';while(e.scrollWidth>e.clientWidth+1&&fs>18){fs-=2;e.style.fontSize=fs+'px'}});
+  scenes.forEach(s=>s.root.style.display='none')};
 window.render=function(t){drawBokeh(t);
   scenes.forEach(s=>{const on=t>=s.start&&t<s.start+s.dur||(s===scenes[scenes.length-1]&&t>=s.start);
     s.root.style.display=on?'block':'none';if(on)s.upd(Math.min(t-s.start,s.dur))})};
@@ -242,7 +247,8 @@ if(!capture){
   fit();addEventListener('resize',fit);
   const btn=document.getElementById('play'),start=document.getElementById('start'),mus=document.getElementById('mus');
   let t0=0,running=false;
-  render(4.6); /* portada de fondo */
+  fitAll();render(4.6); /* portada de fondo */
+  if(document.fonts){document.fonts.ready.then(()=>{fitAll();if(!running)render(4.6)});document.fonts.onloadingdone=()=>{fitAll()}}
   function now(){ /* sincroniza con la música si está sonando */
     if(!mus.paused&&mus.currentTime>0) return mus.currentTime;
     return (performance.now()-t0)/1000; }
@@ -253,7 +259,7 @@ if(!capture){
   function loop(){const t=now();render(Math.min(t,TOTAL));
     if(t<TOTAL)requestAnimationFrame(loop);else{running=false;btn.style.display='block'}}
   start.onclick=go;btn.onclick=go;
-}else{render(0)}
+}else{document.getElementById('start').style.display='none';fitAll();render(0)}
 </script>
 </body>
 </html>
